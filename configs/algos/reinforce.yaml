@@ -1,0 +1,5 @@
+algo: REINFORCE
+total_steps: 200000
+gamma: 0.99
+learning_rate: 3e-4
+eval_episodes: 10

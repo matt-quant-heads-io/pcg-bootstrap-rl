@@ -1,0 +1,11 @@
+algo: TD3
+total_steps: 200000
+replay_size: 200000
+batch_size: 256
+init_random_steps: 10000
+policy_delay: 2
+learning_rate: 3e-4
+gamma: 0.99
+tau: 0.005
+logit_noise_std: 0.2
+eval_episodes: 10

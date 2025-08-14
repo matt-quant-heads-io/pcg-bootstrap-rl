@@ -1,0 +1,12 @@
+algo: DQN
+total_steps: 200000
+replay_size: 200000
+batch_size: 256
+start_learning: 10000
+target_update: 10000
+learning_rate: 3e-4
+eps_start: 1.0
+eps_end: 0.05
+eps_decay: 500000
+gamma: 0.99
+eval_episodes: 10

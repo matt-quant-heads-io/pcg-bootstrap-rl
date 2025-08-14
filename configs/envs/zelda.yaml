@@ -1,0 +1,10 @@
+game: zelda-v0
+level:
+  width: 28
+  height: 14
+diversity: 0.4
+max_steps: 1000
+seed: 123
+eval:
+  num_levels: 50
+  render_samples: 12
