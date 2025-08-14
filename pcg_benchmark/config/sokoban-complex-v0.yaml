@@ -1,0 +1,27 @@
+# Sokoban Problem Configuration - Complex Version
+problem:
+  name: "sokoban-complex-v0"
+  class: "SokobanProblem"
+  
+# Level generation parameters
+level:
+  width: 5
+  height: 5
+  
+# Game-specific parameters
+game:
+  difficulty: 4
+  solver: 20000
+  diversity: 0.5
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  solid: 0
+  empty: 1
+  player: 2
+  box: 3
+  target: 4

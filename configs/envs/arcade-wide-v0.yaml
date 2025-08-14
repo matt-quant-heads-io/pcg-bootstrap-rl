@@ -1,0 +1,36 @@
+# Arcade Rules Problem Configuration - Wide Version
+problem:
+  name: "arcade-wide-v0"
+  class: "ArcadeRulesProblem"
+  
+# Level generation parameters
+level:
+  width: 15
+  height: 7
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  empty: 0
+  solid: 1
+  avatar: 2
+  movable: 3
+  resource: 4
+  portal: 5
+  npc: 6
+  missile: 7
+  spawner: 8
+  
+# Game-specific parameters
+game:
+  # Add any specific arcade rules parameters here
+  max_sprites: 50
+  
+# Quality evaluation parameters
+quality:
+  # Define quality thresholds for arcade rules
+  min_playable_area: 0.3
+  max_sprite_density: 0.4 

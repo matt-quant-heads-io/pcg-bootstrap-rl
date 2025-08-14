@@ -1,0 +1,29 @@
+# Danger Dave Problem Configuration - Standard Version
+problem:
+  name: "ddave-v0"
+  class: "DangerDaveProblem"
+  
+# Level generation parameters
+level:
+  width: 11
+  height: 7
+  
+# Game-specific parameters
+game:
+  jumps: 2
+  solver: 5000
+  diversity: 0.4
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  solid: 0
+  empty: 1
+  player: 2
+  exit: 3
+  diamond: 4
+  key: 5
+  spike: 6

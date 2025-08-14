@@ -1,0 +1,21 @@
+# Super Mario Bros Problem Configuration - Scene Version
+problem:
+  name: "smb-scene-v0"
+  class: "MarioProblem"
+  
+# Level generation parameters
+level:
+  width: 16
+  height: 16
+  
+# Game-specific parameters
+game:
+  empty: 0.5
+  fenemies: 0.1
+  solver: 100
+  timer: 2
+  diversity: 0.4
+  
+# Rendering parameters
+rendering:
+  scale: 16

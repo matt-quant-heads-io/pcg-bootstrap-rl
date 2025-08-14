@@ -1,0 +1,18 @@
+# Mini Dungeons Problem Configuration - Standard Version
+problem:
+  name: "mdungeons-v0"
+  class: "MiniDungeonProblem"
+  
+# Level generation parameters
+level:
+  width: 8
+  height: 12
+  
+# Game-specific parameters
+game:
+  enemies: 8
+  solver: 5000  # Default from similar problems
+  
+# Rendering parameters
+rendering:
+  scale: 16

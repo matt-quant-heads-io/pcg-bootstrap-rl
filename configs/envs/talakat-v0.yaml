@@ -1,0 +1,29 @@
+# Talakat Problem Configuration - Standard Version
+problem:
+  name: "talakat-v0"
+  class: "TalakatProblem"
+  
+# Level generation parameters
+level:
+  width: 200
+  height: 300
+  
+# Game-specific parameters
+game:
+  spawnerComplexity: 10
+  maxHealth: 150
+  diversity: 0.5
+  empty: 0.4
+  min_bullets: 50
+  coverage: 0.95
+  
+# Rendering parameters
+rendering:
+  renderSampling: 5
+  scale: 1
+  
+# Engine parameters
+engine:
+  bucketsX: 10  # Calculated as max(1, width/20)
+  bucketsY: 15  # Calculated as max(1, height/20)
+  maxNumBullets: 1000

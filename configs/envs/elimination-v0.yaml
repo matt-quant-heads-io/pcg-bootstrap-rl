@@ -1,0 +1,23 @@
+# Elimination Problem Configuration - Standard Version
+problem:
+  name: "elimination-v0"
+  class: "EliminationProblem"
+  
+# Level generation parameters
+level:
+  letters: 8
+  
+# Game-specific parameters
+game:
+  short_percentage: 0.5
+  long_percentage: 0.7
+  offset: 0.1
+  diversity: 0.6
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Control space parameters
+control:
+  sequence: 5  # Maximum sequence length

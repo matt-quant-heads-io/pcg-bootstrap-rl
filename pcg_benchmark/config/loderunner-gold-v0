@@ -1,0 +1,33 @@
+# Lode Runner Problem Configuration - Gold Version
+problem:
+  name: "loderunner-gold-v0"
+  class: "LodeRunnerProblem"
+  
+# Level generation parameters
+level:
+  width: 32
+  height: 22
+  
+# Game-specific parameters
+game:
+  gold: 18
+  enemies: 3
+  exploration: 0.2
+  islands: 0.1
+  decorations: 0.75
+  used_tiles: 0.75
+  diversity: 0.4
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  brick: 0
+  empty: 1
+  player: 2
+  gold: 3
+  enemy: 4
+  ladder: 5
+  rope: 6

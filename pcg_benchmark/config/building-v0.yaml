@@ -1,0 +1,28 @@
+# Building Problem Configuration - Standard Version
+problem:
+  name: "building-v0"
+  class: "BuildingProblem"
+  
+# Level generation parameters
+level:
+  width: 8
+  length: 8
+  height: 6
+  
+# Game-specific parameters
+game:
+  blocks: 48  # Calculated as width * length * height / 9
+  minHeight: 0.4
+  diversity: 0.4
+  
+# Rendering parameters
+rendering:
+  scale_x: 16
+  scale_y: 8
+  
+# Block types (for reference)
+blocks:
+  "1x1": 0
+  "1x3": 1
+  "3x1": 2
+  "3x3": 3

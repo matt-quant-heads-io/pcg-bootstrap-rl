@@ -1,8 +1,9 @@
 algo: A2C
-total_steps: 200000
+total_steps: 20000 #200000
 rollout_length: 128
 gamma: 0.99
 vf_coef: 0.5
 ent_coef: 0.01
-learning_rate: 3e-4
+learning_rate: 0.0003
 eval_episodes: 10
+checkpoint_interval: 5000

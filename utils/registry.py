@@ -1,4 +1,4 @@
-from typing import Dict, Type
+from typing import Dict
 
 MODEL_REGISTRY: Dict[str, type] = {}
 AGENT_REGISTRY: Dict[str, type] = {}

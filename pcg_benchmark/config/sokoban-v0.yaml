@@ -1,0 +1,26 @@
+# Sokoban Problem Configuration - Standard Version
+problem:
+  name: "sokoban-v0"
+  class: "SokobanProblem"
+  
+# Level generation parameters
+level:
+  width: 5
+  height: 5
+  
+# Game-specific parameters
+game:
+  difficulty: 1
+  solver: 5000  # Solver timeout/iterations
+  
+# Tile types (for reference)
+tiles:
+  solid: 0
+  empty: 1
+  player: 2
+  box: 3
+  target: 4
+  
+# Rendering parameters
+rendering:
+  scale: 16 

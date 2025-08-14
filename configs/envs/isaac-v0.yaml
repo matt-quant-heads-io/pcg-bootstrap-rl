@@ -1,0 +1,27 @@
+# Isaac Problem Configuration - Standard Version
+problem:
+  name: "isaac-v0"
+  class: "IsaacProblem"
+  
+# Level generation parameters
+level:
+  width: 4
+  height: 4
+  
+# Game-specific parameters
+game:
+  map_size: 6
+  diversity: 0.6
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Room connection types (for reference)
+connections:
+  none: 0
+  left: 1
+  up: 2
+  right: 4
+  down: 8
+  # Combinations are bitwise OR of above values

@@ -3,9 +3,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from gymnasium import spaces
 from .rl_agent_base import RLAgentBase
 from models.actor_categorical import ActorCategorical
 from models.qnet import QNet
+from utils.logging import JSONLLogger
 from utils.replay_buffer import ReplayBuffer
 
 def soft_update(target, source, tau):
@@ -23,13 +25,40 @@ class TD3DiscreteAgent(RLAgentBase):
     def __init__(self, env, model_unused, algo_config: Dict[str, Any], run_dir: str):
         super().__init__(env, algo_config)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # --- normalize env.action_space to Discrete(n) (do NOT do this at import time) ---
+        n_act = getattr(getattr(env, "action_space", None), "n", None)
+        if n_act is None or isinstance(env.action_space, int):
+            n_act = None
+            if hasattr(env, "prob_config") and isinstance(env.prob_config, dict):
+                tiles = env.prob_config.get("tiles")
+                if isinstance(tiles, (list, tuple)):
+                    n_act = len(tiles)
+            if n_act is None:
+                try:
+                    n_act = int(np.max(env.observation_space.high)) + 1
+                except Exception:
+                    n_act = None
+            if n_act is None:
+                try:
+                    rng = env._problem._content_space.range()
+                    n_act = int(rng["max"])
+                except Exception:
+                    pass
+            if n_act is None:
+                raise ValueError("TD3DiscreteAgent: could not infer discrete action size from env.")
+            env.action_space = spaces.Discrete(n_act)
+        self.n_actions = env.action_space.n
+        # ---------------------------------------------------------------------------------
+
         obs0, _ = env.reset()
         s = self.preprocess_observation(obs0)
-        c,h,w = s.shape[1:]
-        self.n_actions = env.action_space.n
-        self.model = TD3Backbone((c,h,w), self.n_actions).to(self.device)
-        self.target = TD3Backbone((c,h,w), self.n_actions).to(self.device)
+        c, h, w = s.shape[1:]
+
+        self.model = TD3Backbone((c, h, w), self.n_actions).to(self.device)
+        self.target = TD3Backbone((c, h, w), self.n_actions).to(self.device)
         self.target.load_state_dict(self.model.state_dict())
+
         self.gamma = float(algo_config.get("gamma", 0.99))
         self.tau = float(algo_config.get("tau", 0.005))
         self.lr = float(algo_config.get("learning_rate", 3e-4))
@@ -38,6 +67,7 @@ class TD3DiscreteAgent(RLAgentBase):
         self.init_random = int(algo_config.get("init_random_steps", 10000))
         self.policy_delay = int(algo_config.get("policy_delay", 2))
         self.logit_noise_std = float(algo_config.get("logit_noise_std", 0.2))
+
         self.q_opt = optim.Adam(list(self.model.q1.parameters()) + list(self.model.q2.parameters()), lr=self.lr)
         self.pi_opt = optim.Adam(self.model.policy.parameters(), lr=self.lr)
         self.buffer = ReplayBuffer(algo_config.get("replay_size", 200000))
@@ -61,35 +91,82 @@ class TD3DiscreteAgent(RLAgentBase):
         if len(self.buffer) < self.batch_size:
             return None
         s, a, r, s2, d = self.buffer.sample(self.batch_size)
+        # Safety: ensure 4D [B, C, H, W]
+        if s.ndim == 5:  s  = s.squeeze(1)
+        if s2.ndim == 5: s2 = s2.squeeze(1)
         return s.to(self.device), a.to(self.device), r.to(self.device), s2.to(self.device), d.to(self.device)
 
+
     def train(self):
-        from utils.logging import JSONLLogger
         logger = JSONLLogger(self.run_dir)
         obs, info = self.env.reset()
         ep_return, ep_len, updates = 0.0, 0, 0
+
         while self._step < self.total_steps:
             s = self.preprocess_observation(obs)
             a = self._act_train(s)
+
             obs2, r, term, trunc, info = self.env.step(a)
             d = term or trunc
             s2 = self.preprocess_observation(obs2)
+
             self.buffer.push(s, a, r, s2, d)
+
             batch = self._sample_batch()
             if batch is not None and self._step >= self.init_random:
                 q_loss = self._update_critics(*batch)
                 updates += 1
                 if updates % self.policy_delay == 0:
                     pi_loss = self._update_actor(batch[0])
+                    # soft update targets
+                    from .td3_discrete import soft_update  # avoid circular unless top-level is fine
                     soft_update(self.target, self.model, self.tau)
                 if updates % 1000 == 0:
-                    logger.log({"step": self._step, "q_loss": float(q_loss), "pi_loss": float(pi_loss if updates % self.policy_delay == 0 else 0.0)})
-            ep_return += float(r); ep_len += 1
-            obs = obs2; self._step += 1
+                    logger.log({
+                        "step": self._step,
+                        "q_loss": float(q_loss),
+                        "pi_loss": float(pi_loss if updates % self.policy_delay == 0 else 0.0)
+                    })
+
+            ep_return += float(r)
+            ep_len += 1
+            obs = obs2
+            self._step += 1
+
+            # checkpoint check
+            ck = self.maybe_checkpoint(self._step, {
+                "algo": "TD3-Discrete",
+                "policy_state_dict": self.model.policy.state_dict(),
+                "q1_state_dict": self.model.q1.state_dict(),
+                "q2_state_dict": self.model.q2.state_dict(),
+                "target_policy_state_dict": self.target.policy.state_dict(),
+                "target_q1_state_dict": self.target.q1.state_dict(),
+                "target_q2_state_dict": self.target.q2.state_dict(),
+                "pi_opt_state_dict": self.pi_opt.state_dict(),
+                "q_opt_state_dict": self.q_opt.state_dict(),
+            })
+            if ck is not None:
+                logger.log({"step": self._step, **ck})
+                eval_eps = int(self.algo_config.get("eval_episodes", 10))
+                eval_res = self._evaluate_for_checkpoint(eval_eps)
+                self._write_eval_json(self._step, eval_res, extra=ck)
+
             if d:
-                logger.log({"step": self._step, "ep_return": ep_return, "ep_len": ep_len, "quality": float(info.get("quality", 0.0))})
-                obs, info = self.env.reset(); ep_return, ep_len = 0.0, 0
+                # bucket the final content of this episode for interval Q/D
+                try:
+                    self._append_final_content(obs)
+                except Exception:
+                    pass
+                logger.log({
+                    "step": self._step,
+                    "ep_return": ep_return,
+                    "ep_len": ep_len,
+                    "quality": float(info.get("quality", 0.0))
+                })
+                obs, info = self.env.reset()
+                ep_return, ep_len = 0.0, 0
         logger.close()
+
 
     def _update_critics(self, s, a, r, s2, d):
         with torch.no_grad():
@@ -116,7 +193,4 @@ class TD3DiscreteAgent(RLAgentBase):
         self.pi_opt.zero_grad(); loss.backward(); self.pi_opt.step()
         return float(loss.detach().item())
 
-    @torch.no_grad()
-    def evaluate(self):
-        from utils.rollouts import evaluate_agent
-        return evaluate_agent(self.env, self, episodes=self.algo_config.get("eval_episodes", 10))
+

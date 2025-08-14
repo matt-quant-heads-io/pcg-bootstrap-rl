@@ -1,0 +1,34 @@
+# Super Mario Bros Problem Configuration - Standard Version
+problem:
+  name: "mario-v0"
+  class: "MarioProblem"
+  
+# Level generation parameters
+level:
+  width: 20
+  height: 16
+  
+# Game-specific parameters
+game:
+  empty: 0.5
+  fenemies: 0.1  # Floating enemies percentage
+  solver: 100  # Solver iterations
+  timer: 2  # Timer limit (calculated as ceil(width/10))
+  diversity: 0.4
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  empty: 0      # "-"
+  solid: 1      # "X" 
+  brick: 2      # "#"
+  brick_coin: 3 # "S"
+  question: 4   # "Q"
+  pipe: 5       # "t"
+  coin: 6       # "o"
+  goomba: 7     # "g"
+  koopa: 8      # "k"
+  spiky: 9      # "y"

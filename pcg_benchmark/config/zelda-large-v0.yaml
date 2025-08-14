@@ -1,0 +1,40 @@
+# Zelda Problem Configuration - Large Level Version
+problem:
+  name: "zelda-large-v0"
+  class: "ZeldaProblem"
+  
+# Level generation parameters
+level:
+  width: 18  # Larger width
+  height: 12  # Larger height
+  
+# Game-specific parameters
+game:
+  enemies: 8  # Scaled enemy count for larger level
+  diversity: 0.3
+  sol_length: 30  # width + height by default
+  
+# Quality evaluation parameters
+quality:
+  enemy_range_factor: 0.25  # Used to calculate enemy range tolerance
+  target_error_factor: 0.25  # Used to calculate solution length error tolerance
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  solid: 0
+  empty: 1
+  player: 2
+  key: 3
+  door: 4
+  enemy: 5
+  
+# Control space parameters
+control:
+  player_key_min_factor: 0.5  # Minimum as fraction of target length
+  player_key_max_factor: 0.25  # Maximum as fraction of level area
+  key_door_min_factor: 0.5    # Minimum as fraction of target length
+  key_door_max_factor: 0.25   # Maximum as fraction of level area 

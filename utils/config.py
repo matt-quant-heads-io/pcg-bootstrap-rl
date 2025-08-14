@@ -6,6 +6,7 @@ def load_yaml(path: str) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 def derive_run_dir(game: str, algo: str) -> str:
+    """Create results/<game>/<algo>/YYYYMMDD_HHMMSS with standard subdirs."""
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     out = os.path.join("results", game, algo, ts)
     for d in ["", "metrics", "plots", "checkpoints", "levels", "configs"]:

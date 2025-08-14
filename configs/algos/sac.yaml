@@ -1,12 +1,15 @@
 algo: SAC
-total_steps: 200000
-replay_size: 200000
+total_steps: 20000 #200000
+replay_size: 20000 #200000
 batch_size: 256
-init_random_steps: 10000
-learning_rate: 3e-4
+init_random_steps: 1000 #10000
+learning_rate: 0.0003
 gamma: 0.99
 tau: 0.005
 learn_alpha: true
 alpha: 0.2
 target_entropy: -1.0
 eval_episodes: 10
+checkpoint_interval: 5000
+
+

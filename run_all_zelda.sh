@@ -4,7 +4,7 @@ set -euo pipefail
 # Runs all algorithms on Zelda using CNNPolicy by default.
 # Adjust total_steps in configs/algos/*.yaml if needed for shorter/longer runs.
 
-ENV_CFG="configs/envs/zelda.yaml"
+ENV_CFG="configs/envs/zelda-v0.yaml"
 declare -A ALGO_CFG=(
   ["PPO"]="configs/algos/ppo.yaml"
   ["A2C"]="configs/algos/a2c.yaml"

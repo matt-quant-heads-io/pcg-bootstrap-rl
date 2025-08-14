@@ -3,18 +3,34 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
-class ActionSpaceAdapter(gym.Wrapper):
-    def __init__(self, env: gym.Env):
-        super().__init__(env)
-        if hasattr(env, "prob_config") and "tiles" in env.prob_config:
-            n_tiles = len(env.prob_config["tiles"])
-        else:
-            high = getattr(getattr(env, "observation_space", None), "high", None)
-            n_tiles = int(np.max(high)) + 1 if high is not None else 6
-        self.action_space = spaces.Discrete(n_tiles)
+# class ActionSpaceAdapter(gym.Wrapper):
+#     def __init__(self, env: gym.Env):
+#         super().__init__(env)
+#         if hasattr(env, "prob_config") and "tiles" in env.prob_config:
+#             n_tiles = len(env.prob_config["tiles"])
+#         else:
+#             high = getattr(getattr(env, "observation_space", None), "high", None)
+#             n_tiles = int(np.max(high)) + 1 if high is not None else 6
+#         self.action_space = spaces.Discrete(n_tiles)
 
-    def step(self, action):
-        return self.env.step(int(action))
+#     def step(self, action):
+#         return self.env.step(int(action))
+
+class ActionSpaceAdapter(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        try:
+            from gymnasium import spaces
+            if hasattr(env, "prob_config") and "tiles" in env.prob_config:
+                n_tiles = len(env.prob_config["tiles"])
+            else:
+                high = getattr(getattr(env, "observation_space", None), "high", None)
+                n_tiles = int(np.max(high)) + 1 if high is not None else 6
+            self.action_space = spaces.Discrete(n_tiles)
+        except Exception:
+            # if anything goes wrong, leave as-is; main.py hardening will fix later
+            self.action_space = getattr(env, "action_space", None)
+
 
 class SafeEnvWrapper(gym.Wrapper):
     def __init__(self, env: gym.Env, max_steps_override: int | None = None):

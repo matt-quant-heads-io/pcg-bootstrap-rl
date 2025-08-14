@@ -1,0 +1,37 @@
+# Arcade Rules Problem Configuration - Standard Version
+problem:
+  name: "arcade-v0"
+  class: "ArcadeRulesProblem"
+  
+# Level generation parameters
+level:
+  width: 7
+  height: 7
+  
+# Game-specific parameters
+game:
+  diversity: 0.25
+  safety: 0.15
+  minToDeath: 0.4
+  minToWin: 0.75
+  
+# Quality evaluation parameters
+quality:
+  survival_threshold: 0.15  # Safety percentage for do nothing agent
+  death_threshold: 0.4      # Minimum percentage for random/agent to lose
+  win_threshold: 0.75       # Minimum percentage for flatmcts agent to win
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Game objects (for reference)
+objects:
+  player: 0
+  red: 1
+  green: 2
+  yellow: 3
+  
+# Control space parameters
+control:
+  layout_type: "fixed"  # Uses predefined layout with corridors and obstacles 

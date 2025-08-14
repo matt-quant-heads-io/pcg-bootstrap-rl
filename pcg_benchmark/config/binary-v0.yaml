@@ -1,0 +1,23 @@
+# Binary Problem Configuration - Wide Version
+problem:
+  name: "binary-wide-v0"
+  class: "BinaryProblem"
+  
+# Level generation parameters
+level:
+  width: 28
+  height: 14
+  
+# Game-specific parameters
+game:
+  path: 42  # width + height default
+  diversity: 0.4
+  
+# Rendering parameters
+rendering:
+  scale: 16
+  
+# Tile types (for reference)
+tiles:
+  empty: 0
+  solid: 1
