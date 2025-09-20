@@ -5,6 +5,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from .pcg_env import PCGEnv, _recursiveDiversity
 import random
+from pathlib import Path
 
 
 """
@@ -25,7 +26,7 @@ class GymPCGEnv(PCGEnv, gym.Env):
     def __init__(self, name, problem):
         super().__init__(name, problem)
         # import pdb; pdb.set_trace()
-        self.prob_config = yaml.safe_load(open(f"/home/ubuntu/pcgrl_benchmark/pcg_benchmark/config/{name}.yaml", "r"))
+        self.prob_config = yaml.safe_load(open(str(Path(__file__).parent.parent)+f"/configs/envs/{name}.yaml", "r")) 
         print(f"self.prob_config: {self.prob_config}")
         self.action_space = self._create_action_space()
         self.observation_space = self._create_observation_space()
@@ -58,6 +59,9 @@ class GymPCGEnv(PCGEnv, gym.Env):
 
     def reset(self, seed=None, options=None):
         """Reset the environment to initial state"""
+        if seed is not None:
+            self.seed(int(seed))
+            
         self._current_content = self._get_initial_content()
         self._positions_queue = []
 
@@ -105,7 +109,9 @@ class GymPCGEnv(PCGEnv, gym.Env):
     def _get_initial_content(self):
         """Get initial content for the episode"""
         # Sample from content space or use a default starting point
-        return np.array(self.content_space.sampleFlat()).reshape(self._height,self._width)
+        arr = np.random.rand(self._height*self._width).astype(np.int32)
+        
+        return np.array(arr).reshape(self._height,self._width)
     
     def _apply_action(self, action):
         """Apply the given action to modify the current content"""

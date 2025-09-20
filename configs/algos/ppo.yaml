@@ -1,7 +1,8 @@
 algo: PPO
-total_steps: 20000 #200000
+policy: CNNPolicy
+total_steps: 2000000
 rollout_length: 128
-batch_size: 256 #4096
+batch_size: 4096
 minibatch_size: 256
 update_epochs: 4
 gamma: 0.99
@@ -10,5 +11,33 @@ clip_coef: 0.2
 vf_coef: 0.5
 ent_coef: 0.01
 learning_rate: 0.0003
-eval_episodes: 10
-checkpoint_interval: 5000
+eval_episodes: 50
+checkpoint_interval: 500000
+do_pretrain: false
+
+pretrain:
+  fail_fast: true
+  hooks:
+    - name: "obs_norm_fit_5k"
+      type: "fit_obs_norm"
+      order: 10
+      enabled: true
+      config:
+        steps: 5000
+
+    - name: "bc_warmstart"
+      type: "behavior_cloning"
+      order: 20
+      enabled: false    # flip to true if you have demos
+      config:
+        dataset: "/path/to/demos.npz"
+        epochs: 5
+        batch_size: 256
+        lr: 3e-4
+
+    - name: "sanity_eval"
+      type: "eval_sanity"
+      order: 90
+      enabled: true
+      config:
+        episodes: 3

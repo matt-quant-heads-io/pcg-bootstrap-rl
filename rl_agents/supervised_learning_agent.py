@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from .rl_agent_base import RLAgentBase
 
+
 class SupervisedLearningAgent(RLAgentBase):
     """Simple behavior cloning-style pretrainer for the given model.
 

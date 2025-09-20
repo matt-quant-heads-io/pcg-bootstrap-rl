@@ -95,6 +95,9 @@ class DQNAgent(RLAgentBase):
 
     def train(self):
         logger = JSONLLogger(self.run_dir)
+        if self.algo_config["do_pretrain"]:
+            self.run_pretrain()
+
         obs, info = self.env.reset()
         ep_return, ep_len = 0.0, 0
 

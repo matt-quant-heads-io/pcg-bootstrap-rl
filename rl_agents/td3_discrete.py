@@ -10,9 +10,11 @@ from models.qnet import QNet
 from utils.logging import JSONLLogger
 from utils.replay_buffer import ReplayBuffer
 
+
 def soft_update(target, source, tau):
     for tp, sp in zip(target.parameters(), source.parameters()):
         tp.data.copy_(tau * sp.data + (1.0 - tau) * tp.data)
+
 
 class TD3Backbone(nn.Module):
     def __init__(self, obs_shape, n_actions):
@@ -20,6 +22,7 @@ class TD3Backbone(nn.Module):
         self.policy = ActorCategorical(obs_shape, n_actions)
         self.q1 = QNet(obs_shape, n_actions)
         self.q2 = QNet(obs_shape, n_actions)
+
 
 class TD3DiscreteAgent(RLAgentBase):
     def __init__(self, env, model_unused, algo_config: Dict[str, Any], run_dir: str):
@@ -99,6 +102,8 @@ class TD3DiscreteAgent(RLAgentBase):
 
     def train(self):
         logger = JSONLLogger(self.run_dir)
+        if self.algo_config["do_pretrain"]:
+            self.run_pretrain()
         obs, info = self.env.reset()
         ep_return, ep_len, updates = 0.0, 0, 0
 

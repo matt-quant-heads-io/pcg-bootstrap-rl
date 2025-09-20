@@ -77,6 +77,7 @@ def build_model(model_name: str, env, algo_cfg):
     ModelCls = MODEL_REGISTRY.get(model_name)
     if ModelCls is None:
         raise ValueError(f"Unknown model '{model_name}'. Known: {list(MODEL_REGISTRY.keys())}")
+
     return ModelCls((c, h, w), n_actions)
 
 
@@ -104,22 +105,27 @@ def main():
     p.add_argument("--model", required=True)
     p.add_argument("--env_config", required=True)
     p.add_argument("--algo_config", required=True)
+    p.add_argument("--seed", default=None)
     args = p.parse_args()
 
     env_cfg = load_yaml(args.env_config)
     algo_cfg = load_yaml(args.algo_config)
 
-    # import pdb; pdb.set_trace()
+    if args.seed:
+        env_cfg["seed"] = args.seed
+    
     game_name = env_cfg["problem"]["name"]
     run_dir = derive_run_dir(game_name, args.algorithm)
+    print(f"run_dir: {run_dir}")
 
     os.makedirs(os.path.join(run_dir, "configs"), exist_ok=True)
     shutil.copy(args.env_config, os.path.join(run_dir, "configs", os.path.basename(args.env_config)))
     shutil.copy(args.algo_config, os.path.join(run_dir, "configs", os.path.basename(args.algo_config)))
 
-    env = pcg_benchmark.make(game_name)  #make_env(env_cfg)
+    env = pcg_benchmark.make(game_name)
     model = build_model(args.model, env, algo_cfg)
-    agent = build_agent(args.algorithm, env, model, algo_cfg, "/home/ubuntu/pcg_bootstrap_rl/"+run_dir)
+    # agent = build_agent(args.algorithm, env, model, algo_cfg, "/home/ubuntu/pcg_bootstrap_rl/"+run_dir)
+    agent = build_agent(args.algorithm, env, model, algo_cfg, run_dir)
     
 
     agent.train()

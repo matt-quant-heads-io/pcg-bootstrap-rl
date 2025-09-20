@@ -40,14 +40,14 @@ control:
   key_door_max_factor: 0.25   # Maximum as fraction of level area 
 
 
-log_dir: "../experiments/"
-ckpt_dir: "../checkpoints/"
-experiment_name: off_policy_ppo
-algo: off_policy_ppo
-problem_name: zelda-v0
-batch_size: 77
-update_interval: 50000
-log_interval: 50000
-save_interval: 50000
-max_steps: 1000
-max_total_training_steps: 1000000
+# log_dir: "../experiments/"
+# ckpt_dir: "../checkpoints/"
+# experiment_name: off_policy_ppo
+# algo: off_policy_ppo
+# problem_name: zelda-v0
+# batch_size: 77
+# update_interval: 50000
+# log_interval: 50000
+# save_interval: 50000
+# max_steps: 1000
+# max_total_training_steps: 1000000

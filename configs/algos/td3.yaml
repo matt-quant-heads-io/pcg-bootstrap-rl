@@ -1,5 +1,5 @@
 algo: TD3
-total_steps: 20000 #200000
+total_steps: 2000000 #200000
 replay_size: 20000 #200000
 batch_size: 256
 init_random_steps: 1000 #10000
@@ -8,5 +8,34 @@ learning_rate: 0.0003
 gamma: 0.99
 tau: 0.005
 logit_noise_std: 0.2
-eval_episodes: 10
-checkpoint_interval: 5000
+eval_episodes: 50
+checkpoint_interval: 50000
+do_pretrain: false
+
+
+pretrain:
+  fail_fast: true
+  hooks:
+    - name: "obs_norm_fit_5k"
+      type: "fit_obs_norm"
+      order: 10
+      enabled: true
+      config:
+        steps: 5000
+
+    - name: "bc_warmstart"
+      type: "behavior_cloning"
+      order: 20
+      enabled: false    # flip to true if you have demos
+      config:
+        dataset: "/path/to/demos.npz"
+        epochs: 5
+        batch_size: 256
+        lr: 3e-4
+
+    - name: "sanity_eval"
+      type: "eval_sanity"
+      order: 90
+      enabled: true
+      config:
+        episodes: 3

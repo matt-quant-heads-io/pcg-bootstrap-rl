@@ -23,7 +23,7 @@ for problem_name in tqdm(all_problems, desc="Evaluating Problems"):
     if problem_name not in ['binary-v0', 'ddave-v0', 'mdungeons-v0', 'sokoban-complex-v0', 'sokoban-v0', 'zelda-enemies-v0', 'zelda-large-v0', 'zelda-v0']:
         continue
     try:
-        env = pcg_benchmark.make_gym_env(problem_name)
+        env = pcg_benchmark.make(problem_name)
     except Exception as e:
         print(f"Could not instantiate problem {problem_name}: {e}")
         problems_with_errors.append(problem_name)

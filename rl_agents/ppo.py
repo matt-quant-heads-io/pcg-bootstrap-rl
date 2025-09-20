@@ -6,6 +6,55 @@ import torch.nn.functional as F
 from utils.logging import JSONLLogger
 from .rl_agent_base import RLAgentBase
 
+import os, json
+
+
+import os
+from pathlib import Path
+from PIL import Image
+
+def _save_eval_levels(self, step: int, contents_list):
+    """
+    Save level images for a given checkpoint step under:
+      <run_dir>/levels/ckpt_<step>/level_XXXX.png
+    """
+    # Normalize step to int (support strings like "step_2000")
+    if isinstance(step, str):
+        try:
+            step = int(str(step).split("_")[-1])
+        except Exception:
+            step = int(step) if str(step).isdigit() else 0
+
+    out_dir = Path(self.run_dir) / "levels" / f"ckpt_{step:08d}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    for i, content in enumerate(contents_list, start=1):
+        try:
+            # env.render can accept a single content or list; we use one-at-a-time
+            rendered = self.env.render(content)
+            # If your render already returns a PIL.Image, keep it;
+            # if it's a numpy array, convert to Image
+            if isinstance(rendered, Image.Image):
+                img = rendered
+            else:
+                # assume HxW or HxWxC ndarray -> to uint8
+                import numpy as np
+                arr = np.asarray(rendered)
+                if arr.dtype != np.uint8:
+                    # simple normalization if not uint8
+                    arr = (255 * (arr - arr.min()) / (arr.ptp() + 1e-9)).astype("uint8")
+                if arr.ndim == 2:
+                    img = Image.fromarray(arr, mode="L")
+                else:
+                    img = Image.fromarray(arr)
+
+            img.save(out_dir / f"level_{i:04d}.png")
+        except Exception as e:
+            print(f"[warn] failed to save level {i} for step {step}: {e}")
+
+    print(f"[levels] wrote {len(contents_list)} image(s) to {out_dir}")
+
+
 class PPOAgent(RLAgentBase):
     def __init__(self, env, model, algo_config: Dict[str, Any], run_dir: str):
         super().__init__(env, algo_config)
@@ -58,6 +107,8 @@ class PPOAgent(RLAgentBase):
 
     def train(self):
         logger = JSONLLogger(self.run_dir)
+        if self.algo_config["do_pretrain"]:
+            self.run_pretrain()
         obs, info = self.env.reset()
         ep_return, ep_len, global_steps = 0.0, 0, 0
 
@@ -93,7 +144,7 @@ class PPOAgent(RLAgentBase):
                     logger.log({"step": global_steps, **ck})
                     # NEW: evaluate at this checkpoint and write eval.json[step]
                     eval_eps = int(self.algo_config.get("eval_episodes", 10))
-                    eval_res = self._evaluate_for_checkpoint(eval_eps)
+                    eval_res = self._evaluate_for_checkpoint(eval_eps, save_images=True, step=global_steps)
                     self._write_eval_json(global_steps, eval_res, extra=ck)
 
                 if done:
