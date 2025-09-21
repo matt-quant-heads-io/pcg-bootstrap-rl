@@ -1,5 +1,5 @@
 algo: TD3
-total_steps: 2000000 #200000
+total_steps: 10000000 #200000
 replay_size: 20000 #200000
 batch_size: 256
 init_random_steps: 1000 #10000

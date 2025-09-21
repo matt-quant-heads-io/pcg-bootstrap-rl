@@ -1,6 +1,6 @@
 algo: PPO
 policy: CNNPolicy
-total_steps: 2000000
+total_steps: 10000000
 rollout_length: 128
 batch_size: 4096
 minibatch_size: 256
@@ -12,7 +12,7 @@ vf_coef: 0.5
 ent_coef: 0.01
 learning_rate: 0.0003
 eval_episodes: 50
-checkpoint_interval: 500000
+checkpoint_interval: 50000
 do_pretrain: false
 
 pretrain:

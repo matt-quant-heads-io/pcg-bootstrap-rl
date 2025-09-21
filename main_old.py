@@ -134,8 +134,4 @@ def main():
         json.dump(eval_report, f, indent=2)
 
 if __name__ == "__main__":
-    from datetime import datetime
-    start = datetime.now()
     main()
-    end = datetime.now()
-    print(f"total time: {int((end - start).total_seconds()/60.0)} mins")

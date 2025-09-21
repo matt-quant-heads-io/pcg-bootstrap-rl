@@ -1,5 +1,5 @@
 algo: DQN
-total_steps: 2000000
+total_steps: 10000000
 replay_size: 200000
 batch_size: 4096
 start_learning: 10000
@@ -10,7 +10,7 @@ eps_end: 0.05
 eps_decay: 500000
 gamma: 0.99
 eval_episodes: 50
-checkpoint_interval: 500000
+checkpoint_interval: 50000
 do_pretrain: false
 
 
