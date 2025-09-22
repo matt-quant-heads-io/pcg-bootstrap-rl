@@ -120,38 +120,89 @@ class RLAgentBase:
 
     @torch.no_grad()
     def preprocess_observation(self, obs):
+        """
+        Accepts either:
+        single env: {"map": (1,H,W), "pos": (2,)}
+        vector env: {"map": (N,1,H,W), "pos": (N,2)}
+        Returns:
+        state: (B, C, crop, crop) float32 on self.device
+        where crop = 2 * max(H, W) and B = batch size (1 for single env).
+        Preserves the original center-crop-around-(y,x) logic.
+        """
         assert isinstance(obs, dict) and "map" in obs and "pos" in obs, "obs must have 'map' and 'pos'"
-        y, x = obs["pos"]
-        map_np = np.asarray(obs["map"], dtype=np.float32)  # (1,H,W)
-        assert map_np.ndim == 3 and map_np.shape[0] == 1, f"Expected (1,H,W), got {map_np.shape}"
-        _, H, W = map_np.shape
 
-        # NEW: full-position context — model sees a 2*max(H,W) crop centered at (y,x)
+        # ---- Normalize inputs to numpy ----
+        map_np = obs["map"]
+        pos_np = obs["pos"]
+
+        if isinstance(map_np, torch.Tensor):
+            map_np = map_np.detach().cpu().numpy()
+        else:
+            map_np = np.asarray(map_np)
+
+        if isinstance(pos_np, torch.Tensor):
+            pos_np = pos_np.detach().cpu().numpy()
+        else:
+            pos_np = np.asarray(pos_np)
+
+        # ---- Ensure batch dims ----
+        # map: (1,H,W) -> (1,1,H,W); (N,1,H,W) stays
+        if map_np.ndim == 3:
+            map_np = map_np[None, ...]  # (1,1,H,W)
+        assert map_np.ndim == 4 and map_np.shape[1] == 1, f"Expected (B,1,H,W), got {map_np.shape}"
+
+        # pos: (2,) -> (1,2); (N,2) stays
+        if pos_np.ndim == 1:
+            pos_np = pos_np[None, ...]
+        assert pos_np.ndim == 2 and pos_np.shape[1] == 2, f"Expected (B,2), got {pos_np.shape}"
+
+        B, _, H, W = map_np.shape
+
+        # ---- Cropping params (same as your original) ----
         crop_ref = max(H, W)
-        self.crop_size = crop_ref * 2
-        half = self.crop_size // 2
+        crop_size = int(crop_ref * 2)
+        half = crop_size // 2
 
-        # pad, then crop centered at current pos
-        padded = np.pad(map_np[0], ((half, half), (half, half)),
-                        mode="constant", constant_values=self.map_pad_fill)
-        top, left = int(y), int(x)
-        cropped = padded[top: top + self.crop_size, left: left + self.crop_size]
+        # keep for downstream / debugging parity with your original
+        self.crop_size = crop_size
+        self.last_pos = pos_np
 
-        # edge guard (should rarely trigger, but safe)
-        if cropped.shape != (self.crop_size, self.crop_size):
-            cropped = np.pad(
-                cropped,
-                ((0, max(0, self.crop_size - cropped.shape[0])) ,
-                (0, max(0, self.crop_size - cropped.shape[1]))),
-                mode="constant",
-                constant_values=self.map_pad_fill,
-            )
-            cropped = cropped[:self.crop_size, :self.crop_size]
+        # ---- Per-sample crop + one-hot → (1,C,crop,crop), then stack to (B,C,crop,crop) ----
+        states = []
+        pad_val = getattr(self, "map_pad_fill", 0)
+        num_classes = int(self.num_classes)
 
-        # one-hot [1, C, H, W]
-        cropped_long = torch.as_tensor(cropped, dtype=torch.long).clamp(0, self.num_classes - 1)
-        state = F.one_hot(cropped_long, num_classes=self.num_classes).float()
-        state = rearrange(state, "h w c -> 1 c h w")
+        device = getattr(self, "device", "cpu")
+
+        for i in range(B):
+            y, x = pos_np[i]
+            y = int(y); x = int(x)
+
+            tile = map_np[i, 0]  # (H,W), integer tiles
+            padded = np.pad(tile, ((half, half), (half, half)),
+                            mode="constant", constant_values=pad_val)
+
+            cropped = padded[y: y + crop_size, x: x + crop_size]
+
+            # Edge guard (rare)
+            if cropped.shape != (crop_size, crop_size):
+                ph = crop_size - cropped.shape[0]
+                pw = crop_size - cropped.shape[1]
+                cropped = np.pad(cropped,
+                                ((0, max(0, ph)),
+                                (0, max(0, pw))),
+                                mode="constant",
+                                constant_values=pad_val)
+                cropped = cropped[:crop_size, :crop_size]
+
+            # One-hot → (crop,crop,C) → (1,C,crop,crop)
+            cropped_long = torch.as_tensor(cropped, dtype=torch.long, device=device).clamp(0, num_classes - 1)
+            one_hot = F.one_hot(cropped_long, num_classes=num_classes).to(torch.float32)  # (crop,crop,C)
+            one_hot = one_hot.permute(2, 0, 1).unsqueeze(0)  # (1,C,crop,crop)
+
+            states.append(one_hot)
+
+        state = torch.cat(states, dim=0)  # (B,C,crop,crop)
         return state
 
 
@@ -425,55 +476,126 @@ class RLAgentBase:
             print(f"Error in _plot_metrics_by_checkpoint: {e}")
 
     @torch.no_grad()
-    def _evaluate_for_checkpoint(self, eval_episodes: int = 10, save_images: bool = False, step: int = 0):
-        returns = []
-        ep_lens = []
-        qualities = []
-        finals = []  # <--- collect final contents per episode
-        last_content = None
-        infos = []
-        base_seed = int(step) if isinstance(step, (int, np.integer)) else 0
-        for ep in range(eval_episodes):
-            obs, info = self.env.reset(seed=base_seed + ep)
-            done = False
-            ep_ret, ep_len = 0.0, 0
-            last_content = None
+    def _evaluate_for_checkpoint(self, n_episodes: int, save_images: bool = False, step: int | None = None):
+        """
+        Batch-safe eval for single or vectorized envs.
+        Runs until 'n_episodes' episodes complete (across all envs if vectorized).
+        Returns a metrics dict.
+        """
+        import os
+        import numpy as np
 
-            while not done:
-                state = self.preprocess_observation(obs)
-                a = self.act_eval(state)
-                
-                obs, r, term, trunc, info = self.env.step(int(a))
-                # import pdb; pdb.set_trace()
-                # print(f"")
-                done = term or trunc
-                ep_ret += float(r)
-                ep_len += 1
-                # last_content = self.env._current_content  # final content
-                last_content = np.array(self.env._current_content, copy=True)
+        # init
+        obs, info = self.env.reset()
+        state = self.preprocess_observation(obs)
+        if state.ndim == 3:
+            state = state.unsqueeze(0)
+        B = state.shape[0]  # num envs (1 or >1)
 
-            # quality from info at episode end (or recompute)
-            q = float(info.get("quality", 0.0))
-            returns.append(ep_ret)
-            ep_lens.append(ep_len)
-            qualities.append(q)
-            infos.append(to_json_safe(info))
-            finals.append(last_content)
-                
+        ep_ret = np.zeros(B, dtype=np.float32)
+        ep_len = np.zeros(B, dtype=np.int64)
 
-        result = {
-            "episodes": eval_episodes,
-            "len_mean":    float(np.mean(ep_lens)),
-            "len_std":     float(np.std(ep_lens)),
-            "quality_mean":float(np.mean(qualities)),
-            "quality_std": float(np.std(qualities)),
-            "infos": infos
+        returns, lengths, qualities = [], [], []
+
+        # optional image dir
+        img_dir = None
+        if save_images:
+            img_dir = os.path.join(self.run_dir, "eval", f"step_{step}" if step is not None else "latest")
+            os.makedirs(img_dir, exist_ok=True)
+
+        def _dones(term, trunc):
+            t = np.asarray(term)
+            u = np.asarray(trunc)
+            if t.ndim == 0 and u.ndim == 0:
+                return np.asarray([bool(t or u)], dtype=bool)
+            return np.logical_or(t, u).astype(bool)
+
+        while len(returns) < int(n_episodes):
+            # greedy action(s)
+            a = self.act_eval(state)  # int or (B,)
+            env_action = self._format_action_for_env(a)
+
+            # step env
+            obs_next, r, term, trunc, info_next = self.env.step(env_action)
+
+            # vectorize rewards/dones
+            r_vec = np.asarray(r, dtype=np.float32)
+            if r_vec.ndim == 0:
+                r_vec = np.asarray([r_vec], dtype=np.float32)
+            done_vec = _dones(term, trunc)
+
+            # accumulate episode stats
+            ep_ret += r_vec
+            ep_len += 1
+
+            # handle finished envs
+            finished_idx = np.nonzero(done_vec)[0]
+            for i in finished_idx:
+                # quality extraction
+                q = 0.0
+                if isinstance(info_next, (list, tuple)) and i < len(info_next) and isinstance(info_next[i], dict):
+                    q = float(info_next[i].get("quality", 0.0))
+                elif isinstance(info_next, dict):
+                    q = float(info_next.get("quality", 0.0))
+
+                returns.append(float(ep_ret[i]))
+                lengths.append(int(ep_len[i]))
+                qualities.append(q)
+
+                # optional image saving
+                if save_images and hasattr(self.env, "render"):
+                    try:
+                        # Try to render current content; fallbacks are best-effort
+                        if hasattr(self.env, "envs"):  # vector wrapper
+                            img = self.env.envs[i].render(self.env.envs[i]._current_content)
+                        else:  # single env
+                            img = self.env.render(getattr(self.env, "_current_content", None))
+                        # Save if PIL-like
+                        if img is not None and hasattr(img, "save") and img_dir is not None:
+                            fp = os.path.join(img_dir, f"episode_{len(returns)-1}_env{i}.png")
+                            img.save(fp)
+                    except Exception:
+                        pass
+
+                # reset only that sub-env (or full env if not vectorized)
+                if hasattr(self.env, "envs"):  # vector
+                    o_i, _ = self.env.envs[i].reset()
+                    if isinstance(obs_next, dict):
+                        for k in obs_next.keys():
+                            obs_next[k][i] = o_i[k]
+                    else:
+                        obs_next[i] = o_i
+                else:  # single
+                    obs_next, _ = self.env.reset()
+
+                ep_ret[i] = 0.0
+                ep_len[i] = 0
+
+                if len(returns) >= int(n_episodes):
+                    break
+
+            # next state
+            state = self.preprocess_observation(obs_next)
+            if state.ndim == 3:
+                state = state.unsqueeze(0)
+
+            obs = obs_next
+
+        # aggregate metrics
+        ret_mean = float(np.mean(returns)) if returns else 0.0
+        len_mean = float(np.mean(lengths)) if lengths else 0.0
+        q_mean   = float(np.mean(qualities)) if qualities else 0.0
+
+        return {
+            "episodes": int(n_episodes),
+            "return_mean": ret_mean,
+            "len_mean": len_mean,
+            "quality_mean": q_mean,
+            "returns": returns,
+            "lengths": lengths,
+            "qualities": qualities,
         }
 
-        if save_images and finals:
-            self._save_eval_levels(step, finals)
-
-        return result
 
     # --- run/dir helpers ---
     def _run_dir(self) -> Path:

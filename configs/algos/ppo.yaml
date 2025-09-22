@@ -1,9 +1,9 @@
 algo: PPO
 policy: CNNPolicy
 total_steps: 10000000
-rollout_length: 128
+rollout_length: 4096
 batch_size: 4096
-minibatch_size: 256
+minibatch_size: 2048
 update_epochs: 4
 gamma: 0.99
 gae_lambda: 0.95

@@ -12,9 +12,7 @@ class _CNNBackbone(nn.Module):
             nn.MaxPool2d(2),
             nn.Conv2d(32, 64, 3, padding=1), nn.ReLU(inplace=True),
             nn.MaxPool2d(2),
-            nn.Conv2d(64, 64, 3, padding=1), nn.ReLU(inplace=True),
-            # Optional: keep adaptive pooling to stabilize across envs
-            nn.AdaptiveAvgPool2d((10, 10)),
+            nn.Conv2d(64, 64, 3, padding=1), nn.ReLU(inplace=True)
         )
 
     def forward(self, x):

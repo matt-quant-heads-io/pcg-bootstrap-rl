@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Callable, Any, Sequence, Iterable
 from pcg_benchmark.pcg_env import PCGEnv
 from pcg_benchmark.gym_pcg_env import GymPCGEnv
 from pcg_benchmark.probs import PROBLEMS
@@ -104,7 +105,6 @@ def make_vectorized_pcg_env(name: str, num_envs: int, asynchronous: bool = False
         return AsyncVectorEnv(env_fns)
     else:
         return SyncVectorEnv(env_fns)
-
 
 
 def append_to_json_file(filename, new_data):
